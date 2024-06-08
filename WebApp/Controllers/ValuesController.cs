@@ -4,36 +4,98 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Web.Http;
+using WebApp.Models;
 
 namespace WebApp.Controllers
 {
     public class ValuesController : ApiController
     {
         // GET api/values
-        public IEnumerable<string> Get()
+        PineWoodTestEntities pineWoodTestEntities = new PineWoodTestEntities();
+        public IEnumerable<Customer> Get()
         {
-            return new string[] { "value1", "value2" };
+            return pineWoodTestEntities.Customers.ToList();
         }
 
         // GET api/values/5
-        public string Get(int id)
+        public Customer Get(int id)
         {
-            return "value";
+            return pineWoodTestEntities.Customers.Where(a => a.Id == id).FirstOrDefault(); ;
         }
 
         // POST api/values
-        public void Post([FromBody] string value)
+        public IHttpActionResult Post(Customer customer)
         {
+            var checkEmailExists = pineWoodTestEntities.Customers.Where(a => a.Email == customer.Email).FirstOrDefault();
+            if (checkEmailExists == null)
+            {
+                pineWoodTestEntities.Customers.Add(customer);
+                try
+                {
+                    pineWoodTestEntities.SaveChanges();
+                }
+                catch (Exception ex)
+                {
+                    return Content(HttpStatusCode.InternalServerError, $"Error saving customer: {ex.Message}");
+                }
+
+
+            }
+            else
+            {
+                return Content(HttpStatusCode.BadRequest, "A customer with the same email already exists.");
+            }
+            return Ok(customer);
         }
 
         // PUT api/values/5
-        public void Put(int id, [FromBody] string value)
+        public IHttpActionResult Put(int id, Customer customer)
         {
+            var checkEmailExists = pineWoodTestEntities.Customers.Where(a => a.Id == customer.Id).FirstOrDefault();
+            if (checkEmailExists != null)
+            {
+                checkEmailExists.Email = customer.Email;
+                checkEmailExists.Address = customer.Address;
+                checkEmailExists.Name = customer.Name;
+                pineWoodTestEntities.Entry(checkEmailExists).State = System.Data.Entity.EntityState.Modified;
+                try
+                {
+                    pineWoodTestEntities.SaveChanges();
+                }
+                catch (Exception ex)
+                {
+                    return Content(HttpStatusCode.InternalServerError, $"Error updating customer: {ex.Message}");
+                }
+            }
+            else
+            {
+                return Content(HttpStatusCode.NotFound, "Customer not found.");
+            }
+            return Ok(customer);
         }
 
         // DELETE api/values/5
-        public void Delete(int id)
+        public IHttpActionResult Delete(int id)
         {
+            var customerToBeDeleted = pineWoodTestEntities.Customers.Where(a => a.Id == id).FirstOrDefault();
+            if (customerToBeDeleted != null)
+            {
+                pineWoodTestEntities.Customers.Remove(customerToBeDeleted);
+                pineWoodTestEntities.SaveChanges();
+                try
+                {
+                    pineWoodTestEntities.SaveChanges();
+                }
+                catch (Exception ex)
+                {
+                    return Content(HttpStatusCode.InternalServerError, $"Error deleting customer: {ex.Message}");
+                }
+            }
+            else
+            {
+                return Content(HttpStatusCode.NotFound, "Customer not found.");
+            }
+            return Ok();
         }
     }
 }
